@@ -309,6 +309,7 @@ static int xfrm_state_modify(int cmd, unsigned int flags, int argc, char **argv)
 	struct xfrm_replay_state_esn replay_esn = {};
 	struct xfrm_user_offload xuo = {};
 	unsigned int ifindex = 0;
+	__u8 offload_flags = 0;
 	__u8 dir = 0;
 	bool is_offload = false;
 	__u32 replay_window = 0;
@@ -444,6 +445,27 @@ static int xfrm_state_modify(int cmd, unsigned int flags, int argc, char **argv)
 				invarg("value after \"offload dir\" is invalid", *argv);
 				is_offload = false;
 			}
+			offload_flags = dir;
+		} else if (strcmp(*argv, "full_offload") == 0) {
+			is_offload = true;
+			NEXT_ARG();
+			if (strcmp(*argv, "dev") == 0) {
+				NEXT_ARG();
+				ifindex = ll_name_to_index(*argv);
+				if (!ifindex) {
+					invarg("value after \"offload dev\" is invalid", *argv);
+					is_offload = false;
+				}
+				NEXT_ARG();
+			}
+			if (strcmp(*argv, "dir") == 0) {
+				NEXT_ARG();
+				xfrm_offload_dir_parse(&dir, &argc, &argv);
+			} else {
+				invarg("value after \"offload dir\" is invalid", *argv);
+				is_offload = false;
+			}
+			offload_flags = dir | XFRM_OFFLOAD_FULL;
 		} else if (strcmp(*argv, "output-mark") == 0) {
 			NEXT_ARG();
 			if (get_u32(&output_mark, *argv, 0))
@@ -592,7 +614,7 @@ static int xfrm_state_modify(int cmd, unsigned int flags, int argc, char **argv)
 
 	if (is_offload) {
 		xuo.ifindex = ifindex;
-		xuo.flags = dir;
+		xuo.flags = offload_flags;
 		addattr_l(&req.n, sizeof(req.buf), XFRMA_OFFLOAD_DEV, &xuo,
 			  sizeof(xuo));
 	}
