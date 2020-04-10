@@ -106,6 +106,7 @@ _devlink_dev_eswitch_set()
         [mode]=notseen
         [inline-mode]=notseen
         [encap-mode]=notseen
+	[ipsec-mode]=notseen
     )
 
     if [[ $cword -eq 5 ]]; then
@@ -134,6 +135,10 @@ _devlink_dev_eswitch_set()
             ;;
         encap-mode)
             COMPREPLY=( $( compgen -W "none basic" -- "$cur" ) )
+            return
+            ;;
+	ipsec-mode)
+            COMPREPLY=( $( compgen -W "none full" -- "$cur" ) )
             return
             ;;
     esac

@@ -37,6 +37,9 @@ devlink-dev \- devlink device configuration
 .RI "[ "
 .BR encap-mode " { " none " | " basic " } "
 .RI "]"
+.RI "[ "
+.BR ipsec-mode " { " none " | " full " } "
+.RI "]"
 
 .ti -8
 .BR "devlink dev eswitch show"
@@ -133,6 +136,16 @@ Set eswitch encapsulation support
 
 .I basic
 - Enable encapsulation support
+
+.TP
+.BR ipsec-mode " { " none " | " full " } "
+Set eswitch ipsec offload support
+
+.I none
+- Disable eswitch ipsec offload
+
+.I full
+- Set eswitch ipsec to full offload
 
 .SS devlink dev param set  - set new value to devlink device configuration parameter
 

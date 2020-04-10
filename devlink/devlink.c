@@ -44,6 +44,9 @@
 #define ESWITCH_ENCAP_MODE_NONE "none"
 #define ESWITCH_ENCAP_MODE_BASIC "basic"
 
+#define ESWITCH_IPSEC_MODE_NONE "none"
+#define ESWITCH_IPSEC_MODE_FULL "full"
+
 #define PARAM_CMODE_RUNTIME_STR "runtime"
 #define PARAM_CMODE_DRIVERINIT_STR "driverinit"
 #define PARAM_CMODE_PERMANENT_STR "permanent"
@@ -268,6 +271,7 @@ static void ifname_map_free(struct ifname_map *ifname_map)
 #define DL_OPT_TRAP_POLICER_ID		BIT(34)
 #define DL_OPT_TRAP_POLICER_RATE	BIT(35)
 #define DL_OPT_TRAP_POLICER_BURST	BIT(36)
+#define DL_OPT_ESWITCH_IPSEC_MODE	BIT(37)
 
 struct dl_opts {
 	uint64_t present; /* flags of present items */
@@ -288,6 +292,7 @@ struct dl_opts {
 	const char *dpipe_table_name;
 	bool dpipe_counters_enabled;
 	enum devlink_eswitch_encap_mode eswitch_encap_mode;
+	enum devlink_eswitch_ipsec_mode eswitch_ipsec_mode;
 	const char *resource_path;
 	uint64_t resource_size;
 	uint32_t resource_id;
@@ -517,6 +522,7 @@ static const enum mnl_attr_data_type devlink_policy[DEVLINK_ATTR_MAX + 1] = {
 	[DEVLINK_ATTR_TRAP_POLICER_ID] = MNL_TYPE_U32,
 	[DEVLINK_ATTR_TRAP_POLICER_RATE] = MNL_TYPE_U64,
 	[DEVLINK_ATTR_TRAP_POLICER_BURST] = MNL_TYPE_U64,
+	[DEVLINK_ATTR_ESWITCH_IPSEC_MODE] = MNL_TYPE_U8,
 };
 
 static const enum mnl_attr_data_type
@@ -1100,6 +1106,21 @@ eswitch_encap_mode_get(const char *typestr,
 	return 0;
 }
 
+static int
+eswitch_ipsec_mode_get(const char *typestr,
+		       enum devlink_eswitch_ipsec_mode *p_ipsec_mode)
+{
+	if (strcmp(typestr, ESWITCH_IPSEC_MODE_NONE) == 0) {
+		*p_ipsec_mode = DEVLINK_ESWITCH_IPSEC_MODE_NONE;
+	} else if (strcmp(typestr, ESWITCH_IPSEC_MODE_FULL) == 0) {
+		*p_ipsec_mode = DEVLINK_ESWITCH_IPSEC_MODE_FULL;
+	} else {
+		pr_err("Unknown eswitch ipsec mode \"%s\"\n", typestr);
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static int param_cmode_get(const char *cmodestr,
 			   enum devlink_param_cmode *cmode)
 {
@@ -1149,6 +1170,7 @@ static const struct dl_args_metadata dl_args_required[] = {
 	{DL_OPT_DPIPE_TABLE_NAME,     "Dpipe table name expected."},
 	{DL_OPT_DPIPE_TABLE_COUNTERS, "Dpipe table counter state expected."},
 	{DL_OPT_ESWITCH_ENCAP_MODE,   "E-Switch encapsulation option expected."},
+	{DL_OPT_ESWITCH_IPSEC_MODE,   "E-Switch ipsec offload option expected."},
 	{DL_OPT_RESOURCE_PATH,	      "Resource path expected."},
 	{DL_OPT_RESOURCE_SIZE,	      "Resource size expected."},
 	{DL_OPT_PARAM_NAME,	      "Parameter name expected."},
@@ -1353,6 +1375,19 @@ static int dl_argv_parse(struct dl *dl, uint64_t o_required,
 			if (err)
 				return err;
 			o_found |= DL_OPT_ESWITCH_ENCAP_MODE;
+		} else if (dl_argv_match(dl, "ipsec-mode") &&
+			   (o_all & DL_OPT_ESWITCH_IPSEC_MODE)) {
+			const char *typestr;
+
+			dl_arg_inc(dl);
+			err = dl_argv_str(dl, &typestr);
+			if (err)
+				return err;
+			err = eswitch_ipsec_mode_get(typestr,
+						     &opts->eswitch_ipsec_mode);
+			if (err)
+				return err;
+			o_found |= DL_OPT_ESWITCH_IPSEC_MODE;
 		} else if (dl_argv_match(dl, "path") &&
 			   (o_all & DL_OPT_RESOURCE_PATH)) {
 			dl_arg_inc(dl);
@@ -1595,6 +1630,9 @@ static void dl_opts_put(struct nlmsghdr *nlh, struct dl *dl)
 	if (opts->present & DL_OPT_ESWITCH_ENCAP_MODE)
 		mnl_attr_put_u8(nlh, DEVLINK_ATTR_ESWITCH_ENCAP_MODE,
 				opts->eswitch_encap_mode);
+	if (opts->present & DL_OPT_ESWITCH_IPSEC_MODE)
+		mnl_attr_put_u8(nlh, DEVLINK_ATTR_ESWITCH_IPSEC_MODE,
+				opts->eswitch_ipsec_mode);
 	if ((opts->present & DL_OPT_RESOURCE_PATH) && opts->resource_id_valid)
 		mnl_attr_put_u64(nlh, DEVLINK_ATTR_RESOURCE_ID,
 				 opts->resource_id);
@@ -1712,6 +1750,7 @@ static void cmd_dev_help(void)
 	pr_err("       devlink dev eswitch set DEV [ mode { legacy | switchdev } ]\n");
 	pr_err("                               [ inline-mode { none | link | network | transport } ]\n");
 	pr_err("                               [ encap-mode { none | basic } ]\n");
+	pr_err("                               [ ipsec-mode { none | full } ]\n");
 	pr_err("       devlink dev eswitch show DEV\n");
 	pr_err("       devlink dev param set DEV name PARAMETER value VALUE cmode { permanent | driverinit | runtime }\n");
 	pr_err("       devlink dev param show [DEV name PARAMETER]\n");
@@ -2153,6 +2192,18 @@ static const char *eswitch_encap_mode_name(uint32_t mode)
 	}
 }
 
+static const char *eswitch_ipsec_mode_name(uint32_t mode)
+{
+	switch (mode) {
+	case DEVLINK_ESWITCH_IPSEC_MODE_NONE:
+		return ESWITCH_IPSEC_MODE_NONE;
+	case DEVLINK_ESWITCH_IPSEC_MODE_FULL:
+		return ESWITCH_IPSEC_MODE_FULL;
+	default:
+		return "<unknown mode>";
+	}
+}
+
 static void pr_out_eswitch(struct dl *dl, struct nlattr **tb)
 {
 	__pr_out_handle_start(dl, tb, true, false);
@@ -2174,6 +2225,12 @@ static void pr_out_eswitch(struct dl *dl, struct nlattr **tb)
 		print_string(PRINT_ANY, "encap-mode", "encap-mode %s",
 			     eswitch_encap_mode_name(mnl_attr_get_u8(
 				    tb[DEVLINK_ATTR_ESWITCH_ENCAP_MODE])));
+	}
+	if (tb[DEVLINK_ATTR_ESWITCH_IPSEC_MODE]) {
+		check_indent_newline(dl);
+		print_string(PRINT_ANY, "ipsec-mode", "ipsec-mode %s",
+			     eswitch_ipsec_mode_name(mnl_attr_get_u8(
+				    tb[DEVLINK_ATTR_ESWITCH_IPSEC_MODE])));
 	}
 
 	pr_out_handle_end(dl);
@@ -2221,7 +2278,8 @@ static int cmd_dev_eswitch_set(struct dl *dl)
 	err = dl_argv_parse_put(nlh, dl, DL_OPT_HANDLE,
 				DL_OPT_ESWITCH_MODE |
 				DL_OPT_ESWITCH_INLINE_MODE |
-				DL_OPT_ESWITCH_ENCAP_MODE);
+				DL_OPT_ESWITCH_ENCAP_MODE |
+				DL_OPT_ESWITCH_IPSEC_MODE);
 
 	if (err)
 		return err;

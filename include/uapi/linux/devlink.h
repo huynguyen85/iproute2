@@ -176,6 +176,11 @@ enum devlink_eswitch_encap_mode {
 	DEVLINK_ESWITCH_ENCAP_MODE_BASIC,
 };
 
+enum devlink_eswitch_ipsec_mode {
+	DEVLINK_ESWITCH_IPSEC_MODE_NONE,
+	DEVLINK_ESWITCH_IPSEC_MODE_FULL,
+};
+
 enum devlink_port_flavour {
 	DEVLINK_PORT_FLAVOUR_PHYSICAL, /* Any kind of a port physically
 					* facing the user.
@@ -443,6 +448,7 @@ enum devlink_attr {
 	DEVLINK_ATTR_TRAP_POLICER_BURST,		/* u64 */
 
 	/* add new attributes above here, update the policy in devlink.c */
+	DEVLINK_ATTR_ESWITCH_IPSEC_MODE,
 
 	__DEVLINK_ATTR_MAX,
 	DEVLINK_ATTR_MAX = __DEVLINK_ATTR_MAX - 1
