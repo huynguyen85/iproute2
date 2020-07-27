@@ -61,7 +61,7 @@ static void usage(void)
 		"        [ replay-seq-hi SEQ ] [ replay-oseq-hi SEQ ]\n"
 		"        [ flag FLAG-LIST ] [ sel SELECTOR ] [ LIMIT-LIST ] [ encap ENCAP ]\n"
 		"        [ coa ADDR[/PLEN] ] [ ctx CTX ] [ extra-flag EXTRA-FLAG-LIST ]\n"
-		"        [ offload [dev DEV] dir DIR ]\n"
+		"        [ { offload | full_offload } [dev DEV] dir DIR ]\n"
 		"        [ output-mark OUTPUT-MARK ]\n"
 		"        [ if_id IF_ID ]\n"
 		"Usage: ip xfrm state allocspi ID [ mode MODE ] [ mark MARK [ mask MASK ] ]\n"
