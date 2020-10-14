@@ -10,8 +10,8 @@
  * (at your option) any later version.
  */
 
-#ifndef _LINUX_DEVLINK_H_
-#define _LINUX_DEVLINK_H_
+#ifndef _UAPI_LINUX_DEVLINK_H_
+#define _UAPI_LINUX_DEVLINK_H_
 
 #define DEVLINK_GENL_NAME "devlink"
 #define DEVLINK_GENL_VERSION 0x1
@@ -121,6 +121,8 @@ enum devlink_command {
 	DEVLINK_CMD_TRAP_POLICER_SET,
 	DEVLINK_CMD_TRAP_POLICER_NEW,
 	DEVLINK_CMD_TRAP_POLICER_DEL,
+
+	DEVLINK_CMD_HEALTH_REPORTER_TEST,
 
 	/* add new commands above here */
 	__DEVLINK_CMD_MAX,
@@ -238,10 +240,13 @@ enum {
  * @DEVLINK_TRAP_ACTION_DROP: Packet is dropped by the device and a copy is not
  *                            sent to the CPU.
  * @DEVLINK_TRAP_ACTION_TRAP: The sole copy of the packet is sent to the CPU.
+ * @DEVLINK_TRAP_ACTION_MIRROR: Packet is forwarded by the device and a copy is
+ *                              sent to the CPU.
  */
 enum devlink_trap_action {
 	DEVLINK_TRAP_ACTION_DROP,
 	DEVLINK_TRAP_ACTION_TRAP,
+	DEVLINK_TRAP_ACTION_MIRROR,
 };
 
 /**
@@ -255,10 +260,16 @@ enum devlink_trap_action {
  *                               control plane for resolution. Trapped packets
  *                               are processed by devlink and injected to
  *                               the kernel's Rx path.
+ * @DEVLINK_TRAP_TYPE_CONTROL: Packet was trapped because it is required for
+ *                             the correct functioning of the control plane.
+ *                             For example, an ARP request packet. Trapped
+ *                             packets are injected to the kernel's Rx path,
+ *                             but not reported to drop monitor.
  */
 enum devlink_trap_type {
 	DEVLINK_TRAP_TYPE_DROP,
 	DEVLINK_TRAP_TYPE_EXCEPTION,
+	DEVLINK_TRAP_TYPE_CONTROL,
 };
 
 enum {
@@ -300,6 +311,7 @@ enum devlink_attr {
 	DEVLINK_ATTR_SB_OCC_MAX,		/* u32 */
 	DEVLINK_ATTR_ESWITCH_MODE,		/* u16 */
 	DEVLINK_ATTR_ESWITCH_INLINE_MODE,	/* u8 */
+	DEVLINK_ATTR_ESWITCH_IPSEC_MODE,        /* u8 */
 
 	DEVLINK_ATTR_DPIPE_TABLES,		/* nested */
 	DEVLINK_ATTR_DPIPE_TABLE,		/* nested */
@@ -447,8 +459,19 @@ enum devlink_attr {
 	DEVLINK_ATTR_TRAP_POLICER_RATE,			/* u64 */
 	DEVLINK_ATTR_TRAP_POLICER_BURST,		/* u64 */
 
+	DEVLINK_ATTR_PORT_FUNCTION,			/* nested */
+
+	DEVLINK_ATTR_INFO_BOARD_SERIAL_NUMBER,	/* string */
+
+	DEVLINK_ATTR_PORT_LANES,			/* u32 */
+	DEVLINK_ATTR_PORT_SPLITTABLE,			/* u8 */
+
+	DEVLINK_ATTR_PORT_EXTERNAL,		/* u8 */
+	DEVLINK_ATTR_PORT_CONTROLLER_NUMBER,	/* u32 */
+
+	DEVLINK_ATTR_FLASH_UPDATE_STATUS_TIMEOUT,	/* u64 */
+
 	/* add new attributes above here, update the policy in devlink.c */
-	DEVLINK_ATTR_ESWITCH_IPSEC_MODE,
 
 	__DEVLINK_ATTR_MAX,
 	DEVLINK_ATTR_MAX = __DEVLINK_ATTR_MAX - 1
@@ -494,4 +517,12 @@ enum devlink_resource_unit {
 	DEVLINK_RESOURCE_UNIT_ENTRY,
 };
 
-#endif /* _LINUX_DEVLINK_H_ */
+enum devlink_port_function_attr {
+	DEVLINK_PORT_FUNCTION_ATTR_UNSPEC,
+	DEVLINK_PORT_FUNCTION_ATTR_HW_ADDR,	/* binary */
+
+	__DEVLINK_PORT_FUNCTION_ATTR_MAX,
+	DEVLINK_PORT_FUNCTION_ATTR_MAX = __DEVLINK_PORT_FUNCTION_ATTR_MAX - 1
+};
+
+#endif /* _UAPI_LINUX_DEVLINK_H_ */
